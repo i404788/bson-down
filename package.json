@@ -1,0 +1,15 @@
+{
+  "name": "bson-down",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://git.devdroplets.com/root/bson-down",
+  "author": "i404788 <404788@student.fontys.nl>",
+  "license": "MIT",
+  "dependencies": {
+    "abstract-leveldown": "^6.2.2",
+    "bsonfy": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/node":"^13.7.7"
+  }
+}

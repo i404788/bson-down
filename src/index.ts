@@ -1,173 +1,181 @@
 'use strict'
+import { BSON } from "bsonfy";
 
-var AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN
-var AbstractChainedBatch = require('abstract-leveldown').AbstractChainedBatch
-var AbstractIterator = require('abstract-leveldown').AbstractIterator
-var rangeMethods = ['approximateSize', 'compactRange']
+const { AbstractLevelDOWN, AbstractChainedBatch, AbstractIterator } = require('abstract-leveldown')
 
-class DB extends AbstractLevelDOWN{
-  constructor(db, opts){
-    if (!(this instanceof DB)) return new DB(db, opts)
+class DB extends AbstractLevelDOWN {
+  public encodeKey = BSON.serialize
+  public decodeKey = BSON.deserialize
 
-    var manifest = db.supports || {}
-    var additionalMethods = manifest.additionalMethods || {}
+  public encodeValue = BSON.serialize
+  public decodeValue = BSON.deserialize
+  private ltgtKeys = ['lt', 'gt', 'lte', 'gte', 'start', 'end']
 
-    AbstractLevelDOWN.call(this, manifest)
-
-    this.supports.encodings = true
-    this.supports.additionalMethods = {}
-
-    rangeMethods.forEach(function (m) {
-        // TODO (future major): remove this fallback
-        var fallback = typeof db[m] === 'function'
-
-        if (additionalMethods[m] || fallback) {
-        this.supports.additionalMethods[m] = true
-
-        this[m] = function (start, end, opts, cb) {
-            start = this.codec.encodeKey(start, opts)
-            end = this.codec.encodeKey(end, opts)
-            return this.db[m](start, end, opts, cb)
-        }
-        }
-    }, this)
+  constructor(public db, public opts) {
+    super(db.supports || {})
 
     opts = opts || {}
     if (typeof opts.keyEncoding === 'undefined') opts.keyEncoding = 'utf8'
     if (typeof opts.valueEncoding === 'undefined') opts.valueEncoding = 'utf8'
 
     this.db = db
-    this.codec = new Codec(opts)
-    }
-}
+  }
 
-DB.prototype.type = 'encoding-down'
+  public encodeLtgt(ltgt: any) {
+    var ret = {}
+    Object.keys(ltgt).forEach((key) => {
+      ret[key] = this.ltgtKeys.indexOf(key) > -1
+        ? this.encodeKey(ltgt[key])
+        : ltgt[key]
+    })
+    return ret
+  }
 
-DB.prototype._serializeKey =
-DB.prototype._serializeValue = function (datum) {
-  return datum
-}
+  private encodeBatch(ops: any) {
 
-DB.prototype._open = function (opts, cb) {
-  this.db.open(opts, cb)
-}
-
-DB.prototype._close = function (cb) {
-  this.db.close(cb)
-}
-
-DB.prototype._put = function (key, value, opts, cb) {
-  key = this.codec.encodeKey(key, opts)
-  value = this.codec.encodeValue(value, opts)
-  this.db.put(key, value, opts, cb)
-}
-
-DB.prototype._get = function (key, opts, cb) {
-  var self = this
-  key = this.codec.encodeKey(key, opts)
-  opts.asBuffer = this.codec.valueAsBuffer(opts)
-  this.db.get(key, opts, function (err, value) {
-    if (err) return cb(err)
-    try {
-      value = self.codec.decodeValue(value, opts)
-    } catch (err) {
-      return cb(new EncodingError(err))
-    }
-    cb(null, value)
-  })
-}
-
-DB.prototype._del = function (key, opts, cb) {
-  key = this.codec.encodeKey(key, opts)
-  this.db.del(key, opts, cb)
-}
-
-DB.prototype._chainedBatch = function () {
-  return new Batch(this)
-}
-
-DB.prototype._batch = function (ops, opts, cb) {
-  ops = this.codec.encodeBatch(ops, opts)
-  this.db.batch(ops, opts, cb)
-}
-
-DB.prototype._iterator = function (opts) {
-  opts.keyAsBuffer = this.codec.keyAsBuffer(opts)
-  opts.valueAsBuffer = this.codec.valueAsBuffer(opts)
-  return new Iterator(this, opts)
-}
-
-DB.prototype._clear = function (opts, callback) {
-  opts = this.codec.encodeLtgt(opts)
-  this.db.clear(opts, callback)
-}
-
-function Iterator (db, opts) {
-  AbstractIterator.call(this, db)
-  this.codec = db.codec
-  this.keys = opts.keys
-  this.values = opts.values
-  this.opts = this.codec.encodeLtgt(opts)
-  this.it = db.db.iterator(this.opts)
-}
-
-inherits(Iterator, AbstractIterator)
-
-Iterator.prototype._next = function (cb) {
-  var self = this
-  this.it.next(function (err, key, value) {
-    if (err) return cb(err)
-    try {
-      if (self.keys && typeof key !== 'undefined') {
-        key = self.codec.decodeKey(key, self.opts)
-      } else {
-        key = undefined
+    return ops.map((_op) => {
+      let op: { type: string, key: any, value?: any, prefix?: any } = {
+        type: _op.type,
+        key: this.encodeKey(_op.key)
       }
-
-      if (self.values && typeof value !== 'undefined') {
-        value = self.codec.decodeValue(value, self.opts)
-      } else {
-        value = undefined
+      if (_op.prefix) op.prefix = _op.prefix
+      if ('value' in _op) {
+        op.value = this.encodeValue(_op.value)
       }
-    } catch (err) {
-      return cb(new EncodingError(err))
-    }
-    cb(null, key, value)
-  })
+      return op
+    })
+  }
+
+  _put(key, value, opts, cb) {
+    key = this.encodeKey(key)
+    value = this.encodeValue(value)
+    this.db.put(key, value, opts, cb)
+  }
+
+  _get(key, opts, cb) {
+    key = this.encodeKey(key)
+    this.db.get(key, opts, (err, value) => {
+      if (err) return cb(err)
+      try {
+        value = this.decodeValue(value, opts)
+      } catch (err) {
+        return cb(err)
+      }
+      cb(null, value)
+    })
+  }
+
+  _del(key, opts, cb) {
+    key = this.encodeKey(key)
+    this.db.del(key, opts, cb)
+  }
+
+  _close(cb) {
+    this.db.close(cb)
+  }
+
+  _open(opts, cb) {
+    this.db.open(opts, cb)
+  }
+
+  _chainedBatch() {
+    return new Batch(this)
+  }
+
+  _batch(ops, opts, cb) {
+    ops = this.encodeBatch(ops)
+    this.db.batch(ops, opts, cb)
+  }
+
+  _iterator(opts) {
+    return new Iterator(this, opts)
+  }
+
+  _clear(opts, callback) {
+    opts = this.encodeLtgt(opts)
+    this.db.clear(opts, callback)
+  }
+
+  _serializeKey(datum) {
+    return datum
+  }
+
+  _serializeValue(datum) {
+    return datum
+  }
+  type = 'bson-down'
 }
 
-Iterator.prototype._seek = function (key) {
-  key = this.codec.encodeKey(key, this.opts)
-  this.it.seek(key)
+class Iterator extends AbstractIterator {
+  public keys: boolean
+  public values: boolean
+  public opts: any
+  public it: any
+  constructor(public db: DB, opts: any) {
+    super(db)
+    this.keys = opts.keys
+    this.values = opts.values
+    this.opts = this.db.encodeLtgt(opts)
+    this.it = db.db.iterator(this.opts)
+  }
+
+
+  _next(cb) {
+    this.it.next((err, key, value) => {
+      if (err) return cb(err)
+      try {
+        if (this.keys && typeof key !== 'undefined') {
+          key = this.db.decodeKey(key, this.opts)
+        } else {
+          key = undefined
+        }
+
+        if (this.values && typeof value !== 'undefined') {
+          value = this.db.decodeValue(value, this.opts)
+        } else {
+          value = undefined
+        }
+      } catch (err) {
+        return cb(err)
+      }
+      cb(null, key, value)
+    })
+  }
+
+  _seek(key) {
+    key = this.db.encodeKey(key)
+    this.it.seek(key)
+  }
+
+  _end(cb) {
+    this.it.end(cb)
+  }
+
 }
 
-Iterator.prototype._end = function (cb) {
-  this.it.end(cb)
-}
+class Batch extends AbstractChainedBatch {
+  private batch: any
+  constructor(public db) {
+    super(db)
+    this.batch = db.db.batch()
+  }
 
-function Batch (db, codec) {
-  AbstractChainedBatch.call(this, db)
-  this.codec = db.codec
-  this.batch = db.db.batch()
-}
+  _put(key, value) {
+    key = this.db.encodeKey(key)
+    value = this.db.encodeValue(value)
+    this.batch.put(key, value)
+  }
 
-inherits(Batch, AbstractChainedBatch)
+  _del(key) {
+    key = this.db.encodeKey(key)
+    this.batch.del(key)
+  }
 
-Batch.prototype._put = function (key, value) {
-  key = this.codec.encodeKey(key)
-  value = this.codec.encodeValue(value)
-  this.batch.put(key, value)
-}
+  _clear() {
+    this.batch.clear()
+  }
 
-Batch.prototype._del = function (key) {
-  key = this.codec.encodeKey(key)
-  this.batch.del(key)
-}
-
-Batch.prototype._clear = function () {
-  this.batch.clear()
-}
-
-Batch.prototype._write = function (opts, cb) {
-  this.batch.write(opts, cb)
+  _write(opts, cb) {
+    this.batch.write(opts, cb)
+  }
 }
