@@ -16,10 +16,9 @@ abstract-leveldown@^6.2.2:
     level-supports "~1.0.0"
     xtend "~4.0.0"
 
-bsonfy@^1.0.2:
+"bsonfy@https://github.com/i404788/bsonfy":
   version "1.0.2"
-  resolved "https://registry.yarnpkg.com/bsonfy/-/bsonfy-1.0.2.tgz#44f0d8f58d80a7fce8e696f1f5d236c11e5b2562"
-  integrity sha512-/kLM6B2x/CWXdkTu2kAv65trB4YruwahBpFDxYkkSunve6Rvx7KSoSHHe1f4jsPXPgXvDG393IjkQ3Us645Eag==
+  resolved "https://github.com/i404788/bsonfy#8776b586ef9c76f22ef8d00af0d6e6001f70c2d0"
 
 level-concat-iterator@~2.0.0:
   version "2.0.1"

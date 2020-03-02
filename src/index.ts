@@ -3,7 +3,7 @@ import { BSON } from "bsonfy";
 
 const { AbstractLevelDOWN, AbstractChainedBatch, AbstractIterator } = require('abstract-leveldown')
 
-class DB extends AbstractLevelDOWN {
+export default class DB extends AbstractLevelDOWN {
   public encodeKey = BSON.serialize
   public decodeKey = BSON.deserialize
 

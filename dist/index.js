@@ -112,6 +112,7 @@ var DB = /** @class */ (function (_super) {
     };
     return DB;
 }(AbstractLevelDOWN));
+exports.default = DB;
 var Iterator = /** @class */ (function (_super) {
     __extends(Iterator, _super);
     function Iterator(db, opts) {
