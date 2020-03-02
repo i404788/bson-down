@@ -7,9 +7,10 @@
   "license": "MIT",
   "dependencies": {
     "abstract-leveldown": "^6.2.2",
-    "bsonfy": "https://github.com/i404788/bsonfy"
+    "bsonfy": "git://github.com/i404788/bsonfy.git#f3e2c90fb27112651d7fe18671a7feb9fb63afd9"
   },
   "devDependencies": {
+    "@types/abstract-leveldown": "^5.0.1",
     "@types/node": "^13.7.7"
   }
 }

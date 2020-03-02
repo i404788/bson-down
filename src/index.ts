@@ -1,13 +1,12 @@
 'use strict'
 import { BSON } from "bsonfy";
+import { AbstractLevelDOWN, AbstractChainedBatch, AbstractIterator } from 'abstract-leveldown';
 
-const { AbstractLevelDOWN, AbstractChainedBatch, AbstractIterator } = require('abstract-leveldown')
+export default class DB extends AbstractLevelDOWN{
+  public encodeKey = (key: any) => key // no-op
+  public decodeKey = (key: Buffer) => Buffer.from(key).toString()
 
-export default class DB extends AbstractLevelDOWN {
-  public encodeKey = BSON.serialize
-  public decodeKey = BSON.deserialize
-
-  public encodeValue = BSON.serialize
+  public encodeValue = (v) => Buffer.from(BSON.serialize(v))
   public decodeValue = BSON.deserialize
   private ltgtKeys = ['lt', 'gt', 'lte', 'gte', 'start', 'end']
 
@@ -15,10 +14,8 @@ export default class DB extends AbstractLevelDOWN {
     super(db.supports || {})
 
     opts = opts || {}
-    if (typeof opts.keyEncoding === 'undefined') opts.keyEncoding = 'utf8'
-    if (typeof opts.valueEncoding === 'undefined') opts.valueEncoding = 'utf8'
-
-    this.db = db
+    if (opts.encodeValue) this.encodeValue = opts.encodeValue
+    if (opts.decodeValue) this.decodeValue = opts.decodeValue
   }
 
   public encodeLtgt(ltgt: any) {
@@ -32,7 +29,6 @@ export default class DB extends AbstractLevelDOWN {
   }
 
   private encodeBatch(ops: any) {
-
     return ops.map((_op) => {
       let op: { type: string, key: any, value?: any, prefix?: any } = {
         type: _op.type,
@@ -106,7 +102,7 @@ export default class DB extends AbstractLevelDOWN {
   type = 'bson-down'
 }
 
-class Iterator extends AbstractIterator {
+class Iterator extends AbstractIterator{
   public keys: boolean
   public values: boolean
   public opts: any
@@ -125,7 +121,7 @@ class Iterator extends AbstractIterator {
       if (err) return cb(err)
       try {
         if (this.keys && typeof key !== 'undefined') {
-          key = this.db.decodeKey(key, this.opts)
+          key = this.db.decodeKey(key)
         } else {
           key = undefined
         }
@@ -153,7 +149,7 @@ class Iterator extends AbstractIterator {
 
 }
 
-class Batch extends AbstractChainedBatch {
+class Batch extends AbstractChainedBatch{
   private batch: any
   constructor(public db) {
     super(db)

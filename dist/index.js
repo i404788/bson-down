@@ -14,25 +14,24 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var bsonfy_1 = require("bsonfy");
-var _a = require('abstract-leveldown'), AbstractLevelDOWN = _a.AbstractLevelDOWN, AbstractChainedBatch = _a.AbstractChainedBatch, AbstractIterator = _a.AbstractIterator;
+var abstract_leveldown_1 = require("abstract-leveldown");
 var DB = /** @class */ (function (_super) {
     __extends(DB, _super);
     function DB(db, opts) {
         var _this = _super.call(this, db.supports || {}) || this;
         _this.db = db;
         _this.opts = opts;
-        _this.encodeKey = bsonfy_1.BSON.serialize;
-        _this.decodeKey = bsonfy_1.BSON.deserialize;
-        _this.encodeValue = bsonfy_1.BSON.serialize;
+        _this.encodeKey = function (key) { return key; }; // no-op
+        _this.decodeKey = function (key) { return Buffer.from(key).toString(); };
+        _this.encodeValue = function (v) { return Buffer.from(bsonfy_1.BSON.serialize(v)); };
         _this.decodeValue = bsonfy_1.BSON.deserialize;
         _this.ltgtKeys = ['lt', 'gt', 'lte', 'gte', 'start', 'end'];
         _this.type = 'bson-down';
         opts = opts || {};
-        if (typeof opts.keyEncoding === 'undefined')
-            opts.keyEncoding = 'utf8';
-        if (typeof opts.valueEncoding === 'undefined')
-            opts.valueEncoding = 'utf8';
-        _this.db = db;
+        if (opts.encodeValue)
+            _this.encodeValue = opts.encodeValue;
+        if (opts.decodeValue)
+            _this.decodeValue = opts.decodeValue;
         return _this;
     }
     DB.prototype.encodeLtgt = function (ltgt) {
@@ -111,7 +110,7 @@ var DB = /** @class */ (function (_super) {
         return datum;
     };
     return DB;
-}(AbstractLevelDOWN));
+}(abstract_leveldown_1.AbstractLevelDOWN));
 exports.default = DB;
 var Iterator = /** @class */ (function (_super) {
     __extends(Iterator, _super);
@@ -131,7 +130,7 @@ var Iterator = /** @class */ (function (_super) {
                 return cb(err);
             try {
                 if (_this.keys && typeof key !== 'undefined') {
-                    key = _this.db.decodeKey(key, _this.opts);
+                    key = _this.db.decodeKey(key);
                 }
                 else {
                     key = undefined;
@@ -157,7 +156,7 @@ var Iterator = /** @class */ (function (_super) {
         this.it.end(cb);
     };
     return Iterator;
-}(AbstractIterator));
+}(abstract_leveldown_1.AbstractIterator));
 var Batch = /** @class */ (function (_super) {
     __extends(Batch, _super);
     function Batch(db) {
@@ -182,4 +181,4 @@ var Batch = /** @class */ (function (_super) {
         this.batch.write(opts, cb);
     };
     return Batch;
-}(AbstractChainedBatch));
+}(abstract_leveldown_1.AbstractChainedBatch));

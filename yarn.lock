@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@types/abstract-leveldown@^5.0.1":
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/@types/abstract-leveldown/-/abstract-leveldown-5.0.1.tgz#3c7750d0186b954c7f2d2f6acc8c3c7ba0c3412e"
+  integrity sha512-wYxU3kp5zItbxKmeRYCEplS2MW7DzyBnxPGj+GJVHZEUZiK/nn5Ei1sUFgURDh+X051+zsGe28iud3oHjrYWQQ==
+
 "@types/node@^13.7.7":
   version "13.7.7"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-13.7.7.tgz#1628e6461ba8cc9b53196dfeaeec7b07fa6eea99"
@@ -16,9 +21,9 @@ abstract-leveldown@^6.2.2:
     level-supports "~1.0.0"
     xtend "~4.0.0"
 
-"bsonfy@https://github.com/i404788/bsonfy":
+"bsonfy@git://github.com/i404788/bsonfy.git#f3e2c90fb27112651d7fe18671a7feb9fb63afd9":
   version "1.0.2"
-  resolved "https://github.com/i404788/bsonfy#8776b586ef9c76f22ef8d00af0d6e6001f70c2d0"
+  resolved "git://github.com/i404788/bsonfy.git#f3e2c90fb27112651d7fe18671a7feb9fb63afd9"
 
 level-concat-iterator@~2.0.0:
   version "2.0.1"
